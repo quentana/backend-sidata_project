@@ -61,14 +61,9 @@ module.exports = {
                 response(404, "Not Found", "User tidak ditemukan.")
             );
         }
-
-        return res.status(200).json(
-            response(200, "Success", user)
-        );
+        return res.status(200).json(response(200, "Success", user));
     } catch (error) {
-        return res.status(500).json(
-            response(500, "Server Error", error.message)
-        );
+        return res.status(500).json(response(500, "Server Error", error.message));
     }
 },
     createUser: async (req, res) => {
@@ -175,15 +170,9 @@ module.exports = {
                 ? 1
                 : Math.ceil(count / Number(limit))
         };
-
-        return res.status(200).json(
-            response(200, "Success", formatPagination)
-        );
-
+        return res.status(200).json(response(200, "Success", formatPagination));
     } catch (error) {
-        return res.status(500).json(
-            response(500, "Server Error", error.message)
-        );
+        return res.status(500).json(response(500, "Server Error", error.message));
     }
 },
 

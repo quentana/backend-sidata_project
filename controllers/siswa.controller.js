@@ -28,7 +28,7 @@ module.exports = {
     try {
         const where = {};
 
-        // Filter berdasarkan role
+        // filter berdasarkan role
         if (req.user.role === 'user') {
             // Siswa hanya bisa melihat datanya sendiri
             where.user_id = req.user.id;
@@ -118,15 +118,10 @@ module.exports = {
                 ? 1
                 : Math.ceil(count / limitNum)
         };
-
-        return res.status(200).json(
-            response(200, "Success", formatPagination)
-        );
+        return res.status(200).json(response(200, "Success", formatPagination));
 
     } catch (error) {
-        return res.status(500).json(
-            response(500, "Server Error di getAll Siswa", error.message)
-        );
+        return res.status(500).json(response(500, "Server Error di getAll Siswa", error.message));
     }
 },
 
