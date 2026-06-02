@@ -24,58 +24,111 @@ const includeRelasi = [
 
 module.exports = {
 
-    getAll: async (req, res) => {
-        try {
-            const where = {};
+   getAll: async (req, res) => {
+    try {
+        const where = {};
 
-            //Sinkronisasi auth role
-            if (req.user.role === 'user') {
-                //jika login sebagai siswa, hanya bs melihat dta nya sendiri
-                where.user_id = req.user.id;
-            } else if (req.user.role === 'admin') {
-                //jika login sebagai Pembimbing, hanya bs  melihat siswa di rayon yang sama
-                //jika admin tidak punya rayon, jangan langsung return kosong dulu saat testing, atau pastikan infonya jelas
-                if (!req.user.rayon_id) {
-                    return res.status(200).json(response(200, "Success tetapi akun Admin Anda belum terikat ke Rayon manapun", {
+        // Filter berdasarkan role
+        if (req.user.role === 'user') {
+            // Siswa hanya bisa melihat datanya sendiri
+            where.user_id = req.user.id;
+        } else if (req.user.role === 'admin') {
+            // Pembimbing hanya bisa melihat siswa dalam rayon yang sama
+            if (!req.user.rayon_id) {
+                return res.status(200).json(
+                    response(200, "Success", {
                         data: [],
-                        pagination: { total: 0, page: 1, limit: 10, totalPages: 0 }
-                    }));
-                } where.rayon_id = req.user.rayon_id;
-            }
-            //jika super-admin, tidak difilter (bisa melihat semua rayon)
-            const { search, sort, order, page, limit, jurusan_id, romble_id } = req.query;
-            if (jurusan_id) where.jurusan_id = jurusan_id;
-            if (romble_id) where.romble_id = romble_id;
-
-            if (search) {
-                where[Op.or] = [
-                    { nama_lengkap: { [Op.like]: `%${search}%` } },
-                    { nisn: { [Op.like]: `%${search}%` } },
-                ];
+                        limit: 0,
+                        rows: "0-0",
+                        total: 0,
+                        page: 1,
+                        totalPages: 0
+                    })
+                );
             }
 
-            const sortField = sort || 'createdAt';
-            const sortOrder = order === 'ASC' ? 'ASC' : 'DESC';
-            const pageNum = parseInt(page) || 1;
-            const limitNum = parseInt(limit) || 10;
-            const offset = (pageNum - 1) * limitNum;
-
-            const { count, rows } = await DataSiswa.findAndCountAll({
-                where,
-                include: includeRelasi,
-                order: [[sortField, sortOrder]],
-                limit: limitNum,
-                offset,
-                distinct: true,
-            });
-            return res.status(200).json(response(200, "Success", {
-                data: rows,
-                pagination: { total: count, page: pageNum, limit: limitNum, totalPages: Math.ceil(count / limitNum) }
-            }));
-        } catch (error) {
-            return res.status(500).json(response(500, "Server Error di getAll Siswa", error.message));
+            where.rayon_id = req.user.rayon_id;
         }
-    },
+
+        const {
+            search = "",
+            sort = "createdAt",
+            order = "DESC",
+            page = 1,
+            limit = 10,
+            jurusan_id,
+            romble_id,
+            all
+        } = req.query;
+
+        const isFetchAll = all === "true";
+
+        if (jurusan_id) {
+            where.jurusan_id = jurusan_id;
+        }
+
+        if (romble_id) {
+            where.romble_id = romble_id;
+        }
+
+        if (search) {
+            where[Op.or] = [
+                {
+                    nama_lengkap: {
+                        [Op.like]: `%${search}%`
+                    }
+                },
+                {
+                    nisn: {
+                        [Op.like]: `%${search}%`
+                    }
+                }
+            ];
+        }
+
+        const pageNum = Number(page);
+        const limitNum = Number(limit);
+        const offset = (pageNum - 1) * limitNum;
+
+        const queryOptions = {
+            where,
+            include: includeRelasi,
+            order: [[sort, order.toUpperCase() === "ASC" ? "ASC" : "DESC"]],
+            distinct: true
+        };
+
+        if (!isFetchAll) {
+            queryOptions.limit = limitNum;
+            queryOptions.offset = offset;
+        }
+
+        const { count, rows } = await DataSiswa.findAndCountAll(queryOptions);
+
+        const formatPagination = {
+            data: rows,
+            limit: isFetchAll ? rows.length : limitNum,
+            rows: rows.length > 0
+                ? isFetchAll
+                    ? `1-${rows.length}`
+                    : `${offset + 1}-${offset + rows.length}`
+                : "0-0",
+            total: count,
+            page: isFetchAll ? 1 : pageNum,
+            totalPages: isFetchAll
+                ? 1
+                : Math.ceil(count / limitNum)
+        };
+
+        return res.status(200).json(
+            response(200, "Success", formatPagination)
+        );
+
+    } catch (error) {
+        return res.status(500).json(
+            response(500, "Server Error di getAll Siswa", error.message)
+        );
+    }
+},
 
     getOne: async (req, res) => {
         try {
