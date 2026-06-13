@@ -23,11 +23,9 @@ const includeRelasi = [
 ];
 
 module.exports = {
-
    getAll: async (req, res) => {
     try {
         const where = {};
-
         // filter berdasarkan role
         if (req.user.role === 'user') {
             // Siswa hanya bisa melihat datanya sendiri
@@ -46,10 +44,8 @@ module.exports = {
                     })
                 );
             }
-
             where.rayon_id = req.user.rayon_id;
         }
-
         const {
             search = "",
             sort = "createdAt",

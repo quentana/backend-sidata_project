@@ -6,9 +6,8 @@ const jwt          = require('jsonwebtoken');
 const { User, Rayon } = require('../models');
 const { auth_secret } = require('../config/base.config');
 const { response }    = require('../helpers/response.formatter');
-const { Op } = require("sequelize");
 
-const includeRayon = [{ model: Rayon, as: 'rayon', attributes: ['id', 'nama_rayon'] }];
+const includeRayon = [{ model: Rayon, as: 'rayon',attributes: ['id', 'nama_rayon'] }];
 
 module.exports = {
     login: async (req, res) => {
@@ -50,22 +49,18 @@ module.exports = {
     },
 
     profile: async (req, res) => {
-    try {
-        const user = await User.findByPk(req.user.id, {
-            attributes: { exclude: ['password'] },
-            include: includeRayon
-        });
-
-        if (!user) {
-            return res.status(404).json(
-                response(404, "Not Found", "User tidak ditemukan.")
-            );
+        try {
+            const user = await User.findByPk(req.user.id, {
+                attributes: { exclude: ['password'] },
+                include: includeRayon
+            });
+            if (!user) return res.status(404).json(response(404, "Not Found", "User tidak ditemukan."));
+            return res.status(200).json(response(200, "Success", user));
+        } catch (error) {
+            return res.status(500).json(response(500, "Server Error", error.message));
         }
-        return res.status(200).json(response(200, "Success", user));
-    } catch (error) {
-        return res.status(500).json(response(500, "Server Error", error.message));
-    }
-},
+    },
+
     createUser: async (req, res) => {
         try {
             const { name, email, password, role, rayon_id } = req.body;
@@ -118,63 +113,18 @@ module.exports = {
         }
     },
 
-   getAllUsers: async (req, res) => {
-    try {
-        const page = req.query.page || 1;
-        const limit = req.query.limit || 10;
-        const search = req.query.search || "";
-        const isFetchAll = req.query.all === "true";
-        const offset = (Number(page) - 1) * Number(limit);
-
-        const queryOptions = {
-            where: {
-                [Op.or]: [
-                    {
-                        name: {
-                            [Op.like]: `%${search}%`
-                        }
-                    },
-                    {
-                        email: {
-                            [Op.like]: `%${search}%`
-                        }
-                    }
-                ]
-            },
-            attributes: {
-                exclude: ["password"]
-            },
-            include: includeRayon,
-            order: [["createdAt", "DESC"]],
-            distinct: true
-        };
-
-        if (!isFetchAll) {
-            queryOptions.limit = Number(limit);
-            queryOptions.offset = Number(offset);
+    getAllUsers: async (req, res) => {
+        try {
+            const users = await User.findAll({
+                attributes: { exclude: ['password'] },
+                include: includeRayon,
+                order: [['createdAt', 'DESC']]
+            });
+            return res.status(200).json(response(200, "Success", users));
+        } catch (error) {
+            return res.status(500).json(response(500, "Server Error", error.message));
         }
-
-        const { count, rows } = await User.findAndCountAll(queryOptions);
-
-        const formatPagination = {
-            data: rows,
-            limit: isFetchAll ? rows.length : Number(limit),
-            rows: rows.length > 0
-                ? isFetchAll
-                    ? `1-${rows.length}`
-                    : `${Number(offset) + 1}-${Number(offset) + rows.length}`
-                : "0-0",
-            total: count,
-            page: isFetchAll ? 1 : Number(page),
-            totalPages: isFetchAll
-                ? 1
-                : Math.ceil(count / Number(limit))
-        };
-        return res.status(200).json(response(200, "Success", formatPagination));
-    } catch (error) {
-        return res.status(500).json(response(500, "Server Error", error.message));
-    }
-},
+    },
 
     updateUser: async (req, res) => {
         try {

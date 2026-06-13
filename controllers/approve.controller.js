@@ -11,6 +11,7 @@ const includeSiswa = [
 ];
 
 module.exports = {
+    
     getAll: async (req, res) => {
         try {
             const where = {};

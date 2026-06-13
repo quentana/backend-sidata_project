@@ -7,7 +7,6 @@ const {
 module.exports = (sequelize, DataTypes) => {
 
   class Rayon extends Model {
-
     static associate(models) {
 
       Rayon.hasMany(models.DataSiswa, {
